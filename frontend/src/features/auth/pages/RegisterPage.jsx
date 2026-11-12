@@ -1,15 +1,19 @@
-import React from "react";
+import { useState } from "react";
 import { Link } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { registerSchema } from "../schemas/registerSchema";
+import { registerUser } from "../../../services/auth.api";
 
 const RegisterPage = () => {
+  const [serverError, setServerError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    reset,
     setError,
   } = useForm({
     resolver: zodResolver(registerSchema),
@@ -21,14 +25,34 @@ const RegisterPage = () => {
       confirmPassword: "",
     },
   });
-  function onSubmit(data) {
-    // The backend is not connected yet.
-    // Do not send or log passwords.
-
-    setError("root", {
-      type: "manual",
-      message: "Form validation passed. Account creation is not connected yet.",
-    });
+  async function onSubmit(data) {
+    setServerError("");
+    setSuccessMessage("");
+    try {
+      const result = await registerUser(data);
+      setSuccessMessage(result.message);
+      reset();
+      // Later : navigate to the login page.
+    } catch (error) {
+      if (error.status === 400 && error.errors?.length) {
+        error.errors.forEach((issue) => {
+          if (
+            ["name", "email", "password", "confirmPassword"].includes(
+              issue.field,
+            )
+          ) {
+            setError(issue.field, {
+              type: "server",
+              message: issue.message,
+            });
+          }
+        });
+      } else {
+        setServerError(
+          error.message || "Unable to register. Please try again.",
+        );
+      }
+    }
   }
   const fields = [
     {
@@ -129,6 +153,17 @@ const RegisterPage = () => {
         >
           {isSubmitting ? "Processing..." : "Create account"}
         </button>
+        {serverError && (
+          <p role="alert" className="text-sm text-red-600">
+            {serverError}
+          </p>
+        )}
+
+        {successMessage && (
+          <p role="status" className="text-sm text-green-600">
+            {successMessage}
+          </p>
+        )}
       </form>
       <p className="mt-6 text-center text-sm text-slate-600">
         Already have an account?{" "}
