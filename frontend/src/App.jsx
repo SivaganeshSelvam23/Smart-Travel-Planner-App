@@ -6,6 +6,7 @@ import ExplorePage from "./features/explore/ExplorePage";
 import TripsPage from "./features/trips/TripsPage";
 import RegisterPage from "./features/auth/pages/RegisterPage";
 import LoginPage from "./features/auth/pages/LoginPage";
+import ProtectedRoute from "./auth/ProtectedRoute";
 function App() {
   return (
     <Routes>
@@ -15,10 +16,12 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
       </Route>
       {/* Existing application pages */}
-      <Route element={<AppLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/trips" element={<TripsPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/trips" element={<TripsPage />} />
+        </Route>
       </Route>
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<p className="p-6">Page not found</p>} />

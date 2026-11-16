@@ -1,10 +1,15 @@
-import React from "react";
+import { useState } from "react";
 import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
+import { useAuth } from "../../../hooks/useAuth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "../schemas/loginSchema";
 
 const LoginPage = () => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [serverError, setServerError] = useState("");
   const {
     register,
     handleSubmit,
@@ -18,16 +23,28 @@ const LoginPage = () => {
       password: "",
     },
   });
-  function onSubmit(data) {
-    // Form validation has passed.
-    // We will connect the Express login API later.
-    // Never log passwords or authentication credentials.
+  async function onSubmit(data) {
+    setServerError("");
 
-    setError("root", {
-      type: "manual",
-      message:
-        "Login validation passed. Backend authentication is not connected yet.",
-    });
+    try {
+      await login(data);
+      navigate("/dashboard", {
+        replace: true,
+      });
+    } catch (error) {
+      if (error.status === 400 && error.errors?.length) {
+        error.errors.forEach((issue) => {
+          if (["email", "password"].includes(issue.field)) {
+            setError(issue.field, {
+              type: "server",
+              message: issue.message,
+            });
+          }
+        });
+      } else {
+        setServerError(error.message || "Unable to login. Please try again.");
+      }
+    }
   }
   return (
     <div>
@@ -55,7 +72,7 @@ const LoginPage = () => {
             id="email"
             type="email"
             placeholder="you@example.com"
-            autoComplete="email"
+            autoComplete="off"
             aria-invalid={Boolean(errors.email)}
             aria-describedby={errors.email ? "email-error" : undefined}
             {...register("email")}
@@ -93,7 +110,7 @@ const LoginPage = () => {
             id="password"
             type="password"
             placeholder="Enter your password"
-            autoComplete="current-password"
+            autoComplete="off"
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined}
             {...register("password")}
@@ -145,6 +162,11 @@ const LoginPage = () => {
         >
           {isSubmitting ? "Signing in..." : "Sign in"}
         </button>
+        {serverError && (
+          <p role="alert" className="text-sm text-red-600">
+            {serverError}
+          </p>
+        )}
       </form>
 
       {/* Register link */}
